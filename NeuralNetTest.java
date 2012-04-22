@@ -6,27 +6,19 @@ import org.junit.Test;
 public class NeuralNetTest {
 
 	@Test
-	public void test_INeuron() {
-		INeuron i = new INeuron();
-		i.setInput(10.0);
-		assertEquals(10.0, i.getOutput(),.001);
+	public void test_Neuron() {
+        // Intial sigmoid test
+		Neuron i = new Neuron(.02);
+		assertEquals(0.5, i.getOutput(3),.01);
 	}
 
     @Test
     public void test_Layer(){
-        Layer hidden = new Layer("hidden",5);
-        hidden.setActivation("sigmoid");
-        assertEquals(1,hidden.function);
-        Layer out = new Layer("output", 2);
+        HiddenLayer hidden = new HiddenLayer("hidden",5);
+        HiddenLayer out = new HiddenLayer("output", 2);
         out.connectToParent(hidden);
-        assertEquals("hidden", out.pid);
-
-    }
-
-    @Test
-    public void test_ONeuron(){
-        ONeuron o = new ONeuron();
-		assertEquals(0.0,o.getOutput(),.001 );
+        assertEquals("hidden", hidden.getId());
+        assertEquals("output", out.getId());
     }
 
 }
