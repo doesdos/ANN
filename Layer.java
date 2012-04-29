@@ -1,8 +1,7 @@
 interface Layer {
 
-
-    public double[] calc();
+    public String getId();
     public boolean isComplete();
     public boolean isReady();
-    public String getId();
+    public double[] calc();
 }
