@@ -1,3 +1,7 @@
+/* The indivdual neurons for each layer regardless of it's type 
+ * the get output will always be the sigmoid function for this class
+ * sub class may override the getOutput with another function if needed
+ * */
 public class Neuron{
 
     private double intial_weight;

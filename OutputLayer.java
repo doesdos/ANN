@@ -1,26 +1,27 @@
 /* Layer class that contains neurons dependent on its input, 
  * and each may have  different types of output functions.
  */
-public class HiddenLayer implements Layer{
+public class OutputLayer implements Layer{
 
-    private Neuron[] neurons;
+    private double[] weights;
+    private double[] initWeights;
     private boolean calComplete;
-    private double []internaldata;
     private Layer parent;
     private String layer_id;
 
     public String p_id;
     public int size;
 
-    public HiddenLayer(String id, int size){
+    public OutputLayer(String id, int size){
         this.layer_id = id;
         this.size = size;
         this.calComplete = false;
-        this.neurons = new Neuron[size];
-        for(Neuron n: this.neurons){
+        this.weights = new double[size];
+        this.initWeights = new double[size];
+        for(double w: this.initWeights){
             // Taken from http://bit.ly/JoWZRw 
-            // Random double (0,1) rather than [0,1)
-            n = new Neuron(0.01 + (Math.random() * (1 - 0.01)));
+            // Random double (0,1) rather than [0,1) 
+            w = 0.01 + (Math.random() * (1 - 0.01));
         }
     }
 
@@ -55,14 +56,33 @@ public class HiddenLayer implements Layer{
                 parent_data = this.parent.calc();
         }
         // parent has done a good job and passed his data along
-        for(double data: parent_data){
-            for(int i=0; i<neurons.length;i++){
-                output[i] +=neurons[i].getOutput(data);
+        for(int w=0; w<this.weights.length; w++){
+            output[w] = this.initWeights[w];
+            for(int d=0; d<parent_data.length; d++ ){
+                output[w] += parent_data[d] *this.weights[w];
             }
-        /* TODO: implement softmax function */
         }
+
+        /* final transformation */
+        output = softmax(output);
         this.calComplete= true;
         return output;
     }
-
+    /* Softmax function */
+     public double[] softmax(double[] inputs) {
+    //        checkInputLength(inputs);
+            double[] outputs = new double[inputs.length];
+            double expSum = 0.0;
+            for (int i=0; i<inputs.length; i++) {
+                expSum += Math.exp(inputs[i]);
+            }
+            for (int i=0; i<outputs.length; i++) {
+                outputs[i] = Math.exp(inputs[i])/expSum;
+            }
+            return outputs;
+     }
+     /* Backpropagation */
+     public void backProp(){
+        double output[] = new double[this.size]; 
+     }
 }
