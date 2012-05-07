@@ -33,7 +33,7 @@ public class ANN {
     public ANN(int input_dimension, int num_hidden, int numOutputClasses, int epochMax, double learningRate){
                 // double momentum, double errorConverganceThreshold
 
-        //bias input is always 1
+        // account for bias input  always 1
         this.inputDimension = input_dimension+1;
 
         this.numHidden = num_hidden+1;
@@ -43,7 +43,7 @@ public class ANN {
         //this.deltaHiddenMem = new double[numHidden][inputDimension];
         this.hiddenOut =  new double[numHidden];
         //bias input is always 1
-        this.hiddenOut[0]=1;
+        this.hiddenOut[0]= -1;
 
         this.output = null;
 
@@ -171,7 +171,7 @@ public class ANN {
                 sumWeight += input[j] * hiddenWeights[h][j];
             }
             /* this is some sort of default weight as suggested in paper */
-            sumWeight += 1 * hiddenWeights[h][inputDimension-1];
+            sumWeight += -1 * hiddenWeights[h][inputDimension-1];
             this.hiddenOut[h] = this.sigmoid(sumWeight);
         }
     }
@@ -179,12 +179,12 @@ public class ANN {
     public double [] calcOutputFromHidden(){
         this.output = new double[numOutputClasses];
         // used for soft max
-        double total = 0;
+        //double total = 0;
         double [] preSoftmaxOutput = new double[numOutputClasses];
         double sumWeight = 0;
         /* default weight again */
-        this.hiddenOut[0] = 1;
 
+        
         for(int i=0; i< this.numOutputClasses; i++){
             sumWeight = 0;
             for(int h=0; h< this.numHidden; h++){
@@ -192,32 +192,23 @@ public class ANN {
             }
             preSoftmaxOutput[i] = sumWeight;
             System.out.println("sumWeight is"+sumWeight);
-
-            if ( Double.isNaN(sumWeight))
-                throw new ArithmeticException("denominator == 0!");
-            if ( Double.isInfinite(sumWeight))
-                throw new ArithmeticException("denominator == infinite!");
+        }
+            this.output = this.softmax(preSoftmaxOutput);
+        /*
             // denominator of softmax
             total +=  Math.exp(sumWeight);
         }
 
-        if ( Double.isNaN(total))
-            throw new ArithmeticException("denominator == 0!");
         if ( Double.isInfinite(total))
             throw new ArithmeticException("denominator == infinite!");
         for(int i=0; i< this.numOutputClasses; i++){
             double var;
-            /* softmax to output */
-            if(Double.isInfinite(preSoftmaxOutput[i]))
-                throw new ArithmeticException("denominator == infinite!");
-
+            // softmax to output 
             var = Math.exp(preSoftmaxOutput[i]) / total;
-        if ( Double.isNaN(var))
-            throw new ArithmeticException("denominator == 0!");
             //System.out.println("softmax total is " +total);
             //System.out.println("softmax is " +var);
             this.output[i] = var;
-         }
+         }*/
         return output;
     }
 
@@ -231,24 +222,21 @@ public class ANN {
 
 
     public void calcDeltaHidden(double [] input, double [] expected){
-         double temp = 0;
-         // damn this has a cubic runtime.
-         // speedups, use previous calcDeltaOutput or something??
+         // speedups, use previous calcDeltaOutput loop??
          for(int h=1;h<this.numHidden; h++){
-             for(int j=0; j<this.inputDimension-1; j++){
-                 for(int i=0; i<this.numOutputClasses; i++){
-                 temp += (expected[i] - this.output[i]) * outputWeights[i][h];
-                 //System.out.println(" y " + this.output[i]);
-                 //System.out.println(" r " + expected[i]);
-                 //System.out.println(" r-y " +(expected[i] - this.output[i]));
-                 }
-                 //System.out.println("Temp is "+temp);
-                 if(j==inputDimension-1){
-                     this.deltaHidden[h][j] = (this.learningRate * temp * this.hiddenOut[h]* (1-this.hiddenOut[h]) * 1);
-                 }
-                 this.deltaHidden[h][j] = (this.learningRate * temp * this.hiddenOut[h]* (1-this.hiddenOut[h]) * input[j]);
+             double sum = 0;
+             for(int i=0; i<this.numOutputClasses; i++){
+                 sum = sum + ((expected[i] - this.output[i]) * outputWeights[i][h]);
              }
-                      }
+             for(int j=0; j<this.inputDimension; j++){
+                 // account for bias input
+                 if(j==inputDimension-1){
+                     this.deltaHidden[h][j] = (this.learningRate * sum * this.hiddenOut[h]* (1-this.hiddenOut[h]) * -1);
+                 } else{
+                         this.deltaHidden[h][j] = (this.learningRate * sum * this.hiddenOut[h]* (1-this.hiddenOut[h]) * input[j]);
+                 }
+             }
+         }
      }
 
     public void updateOutputWeight(){
@@ -313,7 +301,7 @@ public class ANN {
     /**
      * Implementation of a Kahan summation reduction in plain Java
      */
-    static float kahanSum(float data[])
+    public float kahanSum(float data[])
     {
         float sum = data[0];
         float c = 0.0f; 
