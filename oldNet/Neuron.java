@@ -4,18 +4,18 @@
  * */
 public class Neuron{
 
-    private double intial_weight;
+    private double intialWeight;
     private double weight;
 	private double input;
 
     public Neuron(double w){
-        this.intial_weight = w;
+        this.intialWeight = w;
         this.weight = 0;
     }
 
 	public double getOutput(double input) {
 
-		return sigmoid(intial_weight + (weight* input));
+		return sigmoid(intialWeight + (weight* input));
 	}
 
     public void setWeight(double w){

@@ -59,7 +59,6 @@ public class HiddenLayer implements Layer{
             for(int i=0; i<neurons.length;i++){
                 output[i] +=neurons[i].getOutput(data);
             }
-        /* TODO: implement softmax function */
         }
         this.calComplete= true;
         return output;

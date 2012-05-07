@@ -1,3 +1,5 @@
+import java.util.Arrays;
+import static org.junit.Assert.*;
 /* Author: Matthew Clemens
  * Project: Neural Net CS13 
  *
@@ -31,10 +33,10 @@ public class ANN {
     public ANN(int input_dimension, int num_hidden, int numOutputClasses, int epochMax, double learningRate){
                 // double momentum, double errorConverganceThreshold
 
-        // account for bias input at x_0
+        //bias input is always 1
         this.inputDimension = input_dimension+1;
 
-        this.numHidden = num_hidden;
+        this.numHidden = num_hidden+1;
         // row major
         this.hiddenWeights = new double[numHidden][inputDimension];
         this.deltaHidden = new double[numHidden][inputDimension];
@@ -43,12 +45,13 @@ public class ANN {
         //bias input is always 1
         this.hiddenOut[0]=1;
 
+        this.output = null;
+
         this.numOutputClasses = numOutputClasses;
         // row major
         this.outputWeights = new double[numOutputClasses][numHidden];
         this.deltaOut = new double[numOutputClasses][numHidden];
         //this.deltaOutMem = new double[numOutputClasses][numHidden];
-        this.output = new double[numOutputClasses];
 
         /* options*/
         this.learningRate = learningRate;
@@ -63,7 +66,6 @@ public class ANN {
      * Returns the summed error over all all class and all inputs error, and
      * incremental non zero values count the number of iterations run */
     public double [] offlineLearning(double [][] input, double [][] expected){
-        double [] error = new double[epochMax]; 
         
         // Fisher yates inplace shuffle of input and expected
         int m = input.length;
@@ -88,22 +90,35 @@ public class ANN {
         // TODO terminate early
         int time = 0 ;
         double singleError;
+        double [] epochError = new double[epochMax]; 
+        double tempError = 0;
+
         while(time<epochMax){
-            double tempError = 0;
             for(int x=0; x<input.length; x++){
                double [] e =  this.feedForward(input[x]);
                 // check the error of the single input
                 singleError = this.calcError(e, expected[x]);
-                System.out.println("Single Error is "+ singleError);
                 tempError += singleError;
             
+            System.out.println("Vector Error is "+ singleError);
                 this.compute(input[x], expected[x]);
                 this.adjust();
             } 
-            error[time] = tempError;
+            System.out.println("Epoch Error is "+ tempError);
+            epochError[time] = tempError;
+            tempError= 0;
             time++;
         }
-            return error;
+        this.printResults();
+        return epochError;
+    }
+
+    public void printResults(){
+        // dont want to mess ordering of current output;
+        double [] temp = Arrays.copyOf(this.output, this.output.length);
+        for(int i=0;i<temp.length; i++){
+            System.out.println("Class: "+i+" prob: "+temp[i]);
+        }
     }
 
     public double [] feedForward(double [] input ){
@@ -126,14 +141,12 @@ public class ANN {
         * and really close to 1 source: http://bit.ly/JoWZRw */
         for(int h=0; h<this.numHidden; h++){
             for(int j=0; j<this.inputDimension; j++){
-                // [hidden][input]
-                //hiddenWeights[h][j] = (0.01 + (Math.random() * (1 - 0.01)));
-                hiddenWeights[h][j] =  (Math.random() * 2)-1;
+                // [hidden][input]                   
+                hiddenWeights[h][j] = (Math.random()*2)-1;//(Math.random() * (0.03 - .01))-0.01;
             }
             for(int x=0; x<this.numOutputClasses; x++){
                 // [output][hidden]
-                //outputWeights[x][h] = (0.01 + (Math.random() * (1 - 0.01)));
-                outputWeights[x][h] = (Math.random() * 2)-1;
+                outputWeights[x][h] = (Math.random()*2)-1;//(Math.random() * (0.03 - 0.01))-0.01;
             }
         }
     }
@@ -164,6 +177,7 @@ public class ANN {
     }
 
     public double [] calcOutputFromHidden(){
+        this.output = new double[numOutputClasses];
         // used for soft max
         double total = 0;
         double [] preSoftmaxOutput = new double[numOutputClasses];
@@ -171,49 +185,76 @@ public class ANN {
         /* default weight again */
         this.hiddenOut[0] = 1;
 
-        for(int i=1; i< this.numOutputClasses; i++){
+        for(int i=0; i< this.numOutputClasses; i++){
+            sumWeight = 0;
             for(int h=0; h< this.numHidden; h++){
                 sumWeight += hiddenOut[h] * outputWeights[i][h];
             }
             preSoftmaxOutput[i] = sumWeight;
+            System.out.println("sumWeight is"+sumWeight);
+
+            if ( Double.isNaN(sumWeight))
+                throw new ArithmeticException("denominator == 0!");
+            if ( Double.isInfinite(sumWeight))
+                throw new ArithmeticException("denominator == infinite!");
             // denominator of softmax
             total +=  Math.exp(sumWeight);
         }
-        for(int i=1; i< this.numOutputClasses; i++){
+
+        if ( Double.isNaN(total))
+            throw new ArithmeticException("denominator == 0!");
+        if ( Double.isInfinite(total))
+            throw new ArithmeticException("denominator == infinite!");
+        for(int i=0; i< this.numOutputClasses; i++){
+            double var;
             /* softmax to output */
-            this.output[i] = Math.exp(preSoftmaxOutput[i]) / total;
+            if(Double.isInfinite(preSoftmaxOutput[i]))
+                throw new ArithmeticException("denominator == infinite!");
+
+            var = Math.exp(preSoftmaxOutput[i]) / total;
+        if ( Double.isNaN(var))
+            throw new ArithmeticException("denominator == 0!");
+            //System.out.println("softmax total is " +total);
+            //System.out.println("softmax is " +var);
+            this.output[i] = var;
          }
         return output;
     }
 
     public void calcDeltaOutput(double [] expected){
-        for(int i = 1;i<this.numOutputClasses; i++){
+        for(int i = 0;i<this.numOutputClasses; i++){
             for(int h =0;h< this.numHidden; h++){
-                 deltaOut[i][h] = this.learningRate *(expected[i] - output[i])* hiddenOut[h];
+                 this.deltaOut[i][h] = this.learningRate *(expected[i] - this.output[i]) * hiddenOut[h];
              }
          }
      }
 
 
     public void calcDeltaHidden(double [] input, double [] expected){
-         // damn this has a cubic runtime not fast at all.
+         double temp = 0;
+         // damn this has a cubic runtime.
          // speedups, use previous calcDeltaOutput or something??
          for(int h=1;h<this.numHidden; h++){
              for(int j=0; j<this.inputDimension-1; j++){
-                 double temp = 0;
-                 for(int i=1; i<this.numOutputClasses; i++){
-                     temp += (expected[i] - output[i]) * outputWeights[i][h];
+                 for(int i=0; i<this.numOutputClasses; i++){
+                 temp += (expected[i] - this.output[i]) * outputWeights[i][h];
+                 //System.out.println(" y " + this.output[i]);
+                 //System.out.println(" r " + expected[i]);
+                 //System.out.println(" r-y " +(expected[i] - this.output[i]));
                  }
-                 temp += (expected[i] - 1) * outputWeights[i][h];
-                 deltaHidden[h][j] = this.learningRate * temp * hiddenOut[h]* (1-hiddenOut[h]) * input[j];
+                 //System.out.println("Temp is "+temp);
+                 if(j==inputDimension-1){
+                     this.deltaHidden[h][j] = (this.learningRate * temp * this.hiddenOut[h]* (1-this.hiddenOut[h]) * 1);
+                 }
+                 this.deltaHidden[h][j] = (this.learningRate * temp * this.hiddenOut[h]* (1-this.hiddenOut[h]) * input[j]);
              }
-         }
+                      }
      }
 
     public void updateOutputWeight(){
-         for(int i=1; i<this.numOutputClasses; i++){
+         for(int i=0; i<this.numOutputClasses; i++){
              for(int h=0; h<this.numHidden; h++){
-                 outputWeights[i][h] = outputWeights[i][h] + deltaOut[i][h];
+                 this.outputWeights[i][h] +=  this.deltaOut[i][h];
                  //+ (this.momentum*deltaOut[i][h]);
                  //TODO momentum
              }
@@ -222,8 +263,8 @@ public class ANN {
 
     public void updateHiddenWeight(){
          for(int h=1; h<this.numHidden; h++){
-             for(int j=0; j<this.inputDimension-1; j++){
-                 hiddenWeights[h][j] = hiddenWeights[h][j] + deltaHidden[h][j];
+             for(int j=0; j<this.inputDimension; j++){
+                 this.hiddenWeights[h][j] +=  deltaHidden[h][j];
                  // +(deltaHidden[h][j]* this.momentum); 
                  //TODO momentum
              }
@@ -232,6 +273,7 @@ public class ANN {
 
     /*   threshold function for hidden output */
     public double sigmoid(double x) {
+        assertTrue(x !=0.0);
         return (1 / (1 + Math.exp(-x)));
     }
 
@@ -246,6 +288,7 @@ public class ANN {
         for (int i=0; i<inputs.length; i++) {
             expSum += Math.exp(inputs[i]);
         }
+        if ( Double.isNaN(expSum)) throw new ArithmeticException("denominator == 0!");
         for (int i=0; i<outputs.length; i++) {
             outputs[i] = Math.exp(inputs[i])/expSum;
         }
@@ -267,4 +310,33 @@ public class ANN {
         }
         return error*0.5; 
     }
+    /**
+     * Implementation of a Kahan summation reduction in plain Java
+     */
+    static float kahanSum(float data[])
+    {
+        float sum = data[0];
+        float c = 0.0f; 
+        for (int i = 1; i < data.length; i++)
+        {
+            float y = data[i] - c;  
+            float t = sum + y;      
+            c = (t - sum) - y;  
+            sum = t;           
+        }
+        return sum;
+    }
+
+
+    public double [] checkArray(double[] input){
+        if(input[input.length-1]!=0.0){
+            double[] temp = Arrays.copyOf(input,input.length+1);
+            temp[temp.length-1] = 1;
+            return temp;
+        }
+        else{
+            return input;
+        }
+    }
+
 }

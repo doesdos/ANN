@@ -59,7 +59,7 @@ public class OutputLayer implements Layer{
         for(int w=0; w<this.weights.length; w++){
             output[w] = this.initWeights[w];
             for(int d=0; d<parent_data.length; d++ ){
-                output[w] += parent_data[d] *this.weights[w];
+                output[w] += parent_data[d] * this.weights[w];
             }
         }
 
@@ -68,7 +68,8 @@ public class OutputLayer implements Layer{
         this.calComplete= true;
         return output;
     }
-    /* Softmax function */
+    /* Softmax function
+     * \dfrac {e^{T}k} {\sum _{x=1}^{k}e^{Tx}} */
      public double[] softmax(double[] inputs) {
     //        checkInputLength(inputs);
             double[] outputs = new double[inputs.length];
