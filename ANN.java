@@ -100,10 +100,13 @@ public class ANN {
                 singleError = this.calcError(e, expected[x]);
                 tempError += singleError;
             
-            System.out.println("Vector Error is "+ singleError);
+            //System.out.println("Vector Error is "+ singleError);
                 this.compute(input[x], expected[x]);
                 this.adjust();
             } 
+            // WHY CAN't we update after every input????
+            // without getting huge overflows in the weights
+
             System.out.println("Epoch Error is "+ tempError);
             epochError[time] = tempError;
             tempError= 0;
@@ -179,7 +182,7 @@ public class ANN {
     public double [] calcOutputFromHidden(){
         this.output = new double[numOutputClasses];
         // used for soft max
-        //double total = 0;
+        double total = 0;
         double [] preSoftmaxOutput = new double[numOutputClasses];
         double sumWeight = 0;
         /* default weight again */
@@ -191,15 +194,15 @@ public class ANN {
                 sumWeight += hiddenOut[h] * outputWeights[i][h];
             }
             preSoftmaxOutput[i] = sumWeight;
-            System.out.println("sumWeight is"+sumWeight);
         }
-            this.output = this.softmax(preSoftmaxOutput);
-        /*
+        this.output = this.softmax(preSoftmaxOutput);
+            //System.out.println("sumWeight is"+sumWeight);
+       /* 
             // denominator of softmax
             total +=  Math.exp(sumWeight);
         }
 
-        if ( Double.isInfinite(total))
+        if (Double.isInfinite(total))
             throw new ArithmeticException("denominator == infinite!");
         for(int i=0; i< this.numOutputClasses; i++){
             double var;
@@ -209,7 +212,7 @@ public class ANN {
             //System.out.println("softmax is " +var);
             this.output[i] = var;
          }*/
-        return output;
+        return this.output;
     }
 
     public void calcDeltaOutput(double [] expected){
@@ -223,11 +226,12 @@ public class ANN {
 
     public void calcDeltaHidden(double [] input, double [] expected){
          // speedups, use previous calcDeltaOutput loop??
-         for(int h=1;h<this.numHidden; h++){
+         for(int h=1; h<this.numHidden; h++){
              double sum = 0;
              for(int i=0; i<this.numOutputClasses; i++){
-                 sum = sum + ((expected[i] - this.output[i]) * outputWeights[i][h]);
+                 sum +=  (expected[i] - this.output[i]) * outputWeights[i][h];
              }
+             // careful with input bounds
              for(int j=0; j<this.inputDimension; j++){
                  // account for bias input
                  if(j==inputDimension-1){
