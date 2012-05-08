@@ -38,7 +38,7 @@ public class ANNTest {
         }
     }
   
-    @Test
+    //@Test
     public void test_hiddentToOutput(){
         double sum =0;
         double  input [] = {2.0,2.0,2.0};
@@ -56,7 +56,7 @@ public class ANNTest {
     @Test
     public void test_feedForward(){
         double In[][] ={ {3.4,7.0},{1.0,0.3},{0.0,1.4},{1.0,1.0}};
-        ANN net = new ANN(2,3,3,10,.5);
+        ANN net = new ANN(2,3,2,10,.5);
         double [] e = net.feedForward(In[0]);
         assertArrayEquals(e, net.output, .001);
         e = net.feedForward(In[3]);
@@ -132,8 +132,8 @@ public class ANNTest {
         double In[][] ={ 
            {3.4,7.0},
            {1.0,0.3},
-           {0.0,1.4},
-           {1.0,1.0}};
+           {3.0,1.4},
+           {5.0,1.0}};
 
         double [][] expect = { {3.0,1.0},{1.3,9.2},{3.0,1.0},{2.0,7.0} };
 
@@ -142,4 +142,6 @@ public class ANNTest {
 
  
     }
+    
+
 }

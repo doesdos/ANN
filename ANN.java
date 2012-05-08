@@ -3,11 +3,11 @@ import static org.junit.Assert.*;
 /* Author: Matthew Clemens
  * Project: Neural Net CS13 
  *
- * Class for the far less complicataed Neural Network
+ * Class for the far less complicataed and perhaps faster Neural Network 
  * Uses only a main  loop and its combined methods to;
- * 1. Feed the data in , sum weights, and determine threshold activations,
+ * 1. Feed the data in, sum weights, and determine threshold activations,
  * 2. Compute the deltas of the layers,
- * 4. Then back propagate, adjusting the weights,  using graident descent.
+ * 3. Then back propagate, adjusting the weights, using graident descent.
  */
 public class ANN {
 
@@ -45,6 +45,7 @@ public class ANN {
         //bias input is always 1
         this.hiddenOut[0]= -1;
 
+        // just to make sure we dont start out with previous runs output
         this.output = null;
 
         this.numOutputClasses = numOutputClasses;
@@ -62,7 +63,7 @@ public class ANN {
         this.setWeights();
     }
 
-    /* runs through the neural net for all of the inputs, for a most epochMax 
+    /* run through the net for all of the inputs, for at most epochMax times 
      * Returns the summed error over all all class and all inputs error, and
      * incremental non zero values count the number of iterations run */
     public double [] offlineLearning(double [][] input, double [][] expected){
@@ -104,8 +105,6 @@ public class ANN {
                 this.compute(input[x], expected[x]);
                 this.adjust();
             } 
-            // WHY CAN't we update after every input????
-            // without getting huge overflows in the weights
 
             System.out.println("Epoch Error is "+ tempError);
             epochError[time] = tempError;
@@ -116,12 +115,11 @@ public class ANN {
         return epochError;
     }
 
-    public void printResults(){
-        // dont want to mess ordering of current output;
-        double [] temp = Arrays.copyOf(this.output, this.output.length);
-        for(int i=0;i<temp.length; i++){
-            System.out.println("Class: "+i+" prob: "+temp[i]);
-        }
+    
+
+    public void predict(double [] input){
+        this.feedForward(input);
+        this.printResults();
     }
 
     public double [] feedForward(double [] input ){
@@ -154,6 +152,7 @@ public class ANN {
         }
     }
 
+    /* Useful for testing */
     public void setWeightsToOne(){
         for(int h=0; h<this.numHidden; h++){
             for(int j=0; j<this.inputDimension; j++){
@@ -164,6 +163,15 @@ public class ANN {
                 // [output][hidden]
                 outputWeights[x][h] = 1;
             }
+        }
+    }
+
+    /* Useful for testing */
+    public void printResults(){
+        // dont want to mess  current output;
+        double [] temp = this.softmax(this.output);
+        for(int i=0;i<temp.length; i++){
+            System.out.println("Class: "+i+" prob: "+temp[i]);
         }
     }
 
@@ -195,7 +203,9 @@ public class ANN {
             }
             preSoftmaxOutput[i] = sumWeight;
         }
-        this.output = this.softmax(preSoftmaxOutput);
+        this.output = preSoftmaxOutput;
+        return this.output;
+        /* THIS CAUSED ALOT OF PROBLEMS KEEPING HERE TO REMIND MYSELF */
             //System.out.println("sumWeight is"+sumWeight);
        /* 
             // denominator of softmax
@@ -212,7 +222,6 @@ public class ANN {
             //System.out.println("softmax is " +var);
             this.output[i] = var;
          }*/
-        return this.output;
     }
 
     public void calcDeltaOutput(double [] expected){
@@ -226,22 +235,23 @@ public class ANN {
 
     public void calcDeltaHidden(double [] input, double [] expected){
          // speedups, use previous calcDeltaOutput loop??
+         // cache locality holding for the inner most loop or 
+         // is there a jump out when storing a large sum?
          for(int h=1; h<this.numHidden; h++){
              double sum = 0;
              for(int i=0; i<this.numOutputClasses; i++){
                  sum +=  (expected[i] - this.output[i]) * outputWeights[i][h];
              }
              // careful with input bounds
-             for(int j=0; j<this.inputDimension; j++){
-                 // account for bias input
-                 if(j==inputDimension-1){
-                     this.deltaHidden[h][j] = (this.learningRate * sum * this.hiddenOut[h]* (1-this.hiddenOut[h]) * -1);
-                 } else{
-                         this.deltaHidden[h][j] = (this.learningRate * sum * this.hiddenOut[h]* (1-this.hiddenOut[h]) * input[j]);
-                 }
+             for(int j=0; j<this.inputDimension-1; j++){
+                 this.deltaHidden[h][j] = (this.learningRate * sum * this.hiddenOut[h]* (1-this.hiddenOut[h]) * input[j]);
              }
+             // account for bias input
+             // careful with input bounds
+             this.deltaHidden[h][inputDimension-1] = (this.learningRate * sum * this.hiddenOut[h]* (1-this.hiddenOut[h]) * -1);
          }
      }
+    
 
     public void updateOutputWeight(){
          for(int i=0; i<this.numOutputClasses; i++){
@@ -269,10 +279,12 @@ public class ANN {
         return (1 / (1 + Math.exp(-x)));
     }
 
+    public double dxSigmoid(double x){
+        return sigmoid(x)* (1-sigmoid(x));
+    }
+
     /* Standalone Softmax function  for  transformation
-     * to a probabilty between 0 and 1.
-     * NOTE: not used because it repeats a loop that can be
-     * done in the calcOutputFromHidden */
+     * to a probabilty between 0 and 1. */
     public double[] softmax(double[] inputs) {
         //checkInputLength(inputs);
         double[] outputs = new double[inputs.length];
@@ -280,13 +292,15 @@ public class ANN {
         for (int i=0; i<inputs.length; i++) {
             expSum += Math.exp(inputs[i]);
         }
-        if ( Double.isNaN(expSum)) throw new ArithmeticException("denominator == 0!");
+        if ( Double.isNaN(expSum)){
+            throw new ArithmeticException("denominator == 0!");}
         for (int i=0; i<outputs.length; i++) {
             outputs[i] = Math.exp(inputs[i])/expSum;
         }
         return outputs;
      }
 
+    /* sum of squares for only 1 data entry */
     public double calcError(double result, double target) {
         double diff;
         diff = result-target;
@@ -302,9 +316,7 @@ public class ANN {
         }
         return error*0.5; 
     }
-    /**
-     * Implementation of a Kahan summation reduction in plain Java
-     */
+    /* Implementation of a Kahan summation reduction */
     public float kahanSum(float data[])
     {
         float sum = data[0];
@@ -319,7 +331,7 @@ public class ANN {
         return sum;
     }
 
-
+/*
     public double [] checkArray(double[] input){
         if(input[input.length-1]!=0.0){
             double[] temp = Arrays.copyOf(input,input.length+1);
@@ -330,5 +342,5 @@ public class ANN {
             return input;
         }
     }
-
+*/
 }
