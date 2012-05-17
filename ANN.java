@@ -227,7 +227,7 @@ public class ANN {
     public void calcDeltaOutput(double [] expected){
         for(int i = 0;i<this.numOutputClasses; i++){
             for(int h =0;h< this.numHidden; h++){
-                 this.deltaOut[i][h] = this.learningRate *(expected[i] - this.output[i]) * hiddenOut[h];
+                 this.deltaOut[i][h] += this.learningRate *(expected[i] - this.output[i]) * hiddenOut[h];
              }
          }
      }
@@ -244,7 +244,7 @@ public class ANN {
              }
              // careful with input bounds
              for(int j=0; j<this.inputDimension-1; j++){
-                 this.deltaHidden[h][j] = (this.learningRate * sum * this.hiddenOut[h]* (1-this.hiddenOut[h]) * input[j]);
+                 this.deltaHidden[h][j] += (this.learningRate * sum * this.hiddenOut[h]* (1-this.hiddenOut[h]) * input[j]);
              }
              // account for bias input
              // careful with input bounds
