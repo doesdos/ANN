@@ -1,2 +1,2 @@
 javac -cp ../junit4.10/junit-4.10.jar:./ *.java;
-java -cp ../junit4.10/junit-4.10.jar:./ org.junit.runner.JUnitCore $1 
+java -cp ../junit4.10/junit-4.10.jar:./ org.junit.runner.JUnitCore ANNTest
