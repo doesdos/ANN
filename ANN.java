@@ -1,5 +1,5 @@
 import java.util.Arrays;
-import static org.junit.Assert.*;
+//import static org.junit.Assert.*;
 /* Author: Matthew Clemens
  * Project: Neural Net CS13 
  *
@@ -275,7 +275,6 @@ public class ANN {
 
     /*   threshold function for hidden output */
     public double sigmoid(double x) {
-        assertTrue(x !=0.0);
         return (1 / (1 + Math.exp(-x)));
     }
 

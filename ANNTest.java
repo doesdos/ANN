@@ -137,9 +137,8 @@ public class ANNTest {
 
         double [][] expect = { {3.0,1.0},{1.3,9.2},{3.0,1.0},{2.0,7.0} };
 
-        ANN net = new ANN(2,3,2,1000,.1);
+        ANN net = new ANN(2,2,2,300,.1);
         double [] error = net.offlineLearning(In, expect);
-
  
     }
     
